@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ระบบหยิบของ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F3F4F6; --panel:#FFFFFF; --ink:#1C1F26; --sub:#6B7280; --line:#E3E5E9;
+    --side1:#2F6690; --side1-soft:#E7F0F6; --side2:#B5651D; --side2-soft:#F7EAE0;
+    --ok:#1E8E4E; --ok-soft:#E4F4EA; --warn:#C4880B; --warn-soft:#FCF1DA;
+    --idle:#8A8F98; --idle-soft:#EEEFF1; --danger:#C4362B;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;-webkit-tap-highlight-color:transparent;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  #app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;padding-bottom:74px;}
+
+  header{position:sticky;top:0;z-index:20;background:var(--ink);color:#fff;
+    padding:14px 16px 12px;display:flex;align-items:center;justify-content:space-between;}
+  header .title{font-weight:800;font-size:17px;letter-spacing:.2px;}
+  header .title .tag{font-family:'JetBrains Mono',monospace;font-weight:700;background:#3A3F4B;color:#fff;
+    font-size:10px;padding:2px 6px;border-radius:4px;margin-left:8px;vertical-align:middle;}
+  header .who{display:flex;align-items:center;gap:10px;}
+  header .who .name{font-size:12px;color:#DADEE5;}
+  header .who .role{font-size:9.5px;font-weight:700;background:#3A3F4B;color:#B9BEC8;
+    padding:2px 6px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px;}
+  header .logout{background:none;border:none;color:#DADEE5;font-size:11px;font-weight:700;
+    text-decoration:underline;padding:0;}
+
+  main{flex:1;padding:14px 14px 10px;}
+  h2.page-title{font-size:15px;font-weight:800;margin:2px 0 12px;color:var(--ink);
+    display:flex;align-items:center;gap:8px;}
+  .badge-floor{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;
+    padding:3px 8px;border-radius:5px;border:1.5px dashed currentColor;}
+  .side1 .badge-floor{color:var(--side1);}
+  .side2 .badge-floor{color:var(--side2);}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;}
+  .empty{text-align:center;color:var(--sub);padding:40px 16px;font-size:14px;}
+  .empty b{display:block;color:var(--ink);font-size:15px;margin-bottom:4px;}
+
+  .item{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--idle);
+    border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .item.partial{border-left-color:var(--warn);}
+  .item.complete{border-left-color:var(--ok);}
+  .item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
+  .item-order{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+    background:var(--idle-soft);color:var(--idle);padding:2px 7px;border-radius:5px;}
+  .item-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;}
+  .item-status.idle{background:var(--idle-soft);color:var(--idle);}
+  .item-status.partial{background:var(--warn-soft);color:var(--warn);}
+  .item-status.complete{background:var(--ok-soft);color:var(--ok);}
+  .item-cat{font-weight:700;font-size:15px;margin-bottom:2px;}
+  .item-attrs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 10px;}
+  .attr{font-size:11.5px;color:var(--sub);background:var(--bg);border:1px solid var(--line);
+    padding:2px 8px;border-radius:20px;}
+  .item-qty-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .qty-label{font-size:12px;color:var(--sub);}
+  .stepper{display:flex;align-items:center;gap:0;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;}
+  .stepper button{width:38px;height:38px;border:none;background:var(--bg);font-size:18px;font-weight:700;color:var(--ink);}
+  .stepper input{width:52px;height:38px;border:none;border-left:1.5px solid var(--line);
+    border-right:1.5px solid var(--line);text-align:center;font-family:'JetBrains Mono',monospace;
+    font-weight:700;font-size:15px;}
+  .ordered-note{font-size:11.5px;color:var(--sub);}
+
+  .ov-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px;}
+  .ov-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .ov-order{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:14px;}
+  .ov-pill{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .ov-pill.ready{background:var(--ok-soft);color:var(--ok);}
+  .ov-pill.pending{background:var(--warn-soft);color:var(--warn);}
+  .ov-pill.none{background:var(--idle-soft);color:var(--idle);}
+  .barwrap{height:8px;background:var(--bg);border-radius:20px;overflow:hidden;margin:6px 0;}
+  .bar{height:100%;background:var(--ok);border-radius:20px;}
+  .ov-meta{font-size:12px;color:var(--sub);display:flex;justify-content:space-between;}
+
+  label{display:block;font-size:12px;font-weight:600;color:var(--sub);margin:10px 0 5px;}
+  input[type=text],input[type=number],input[type=date],select{
+    width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:9px;
+    font-size:15px;font-family:'Inter',sans-serif;background:#fff;color:var(--ink);}
+  input:focus,select:focus{outline:2px solid var(--side1);outline-offset:1px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .toggle-row{display:flex;gap:8px;margin-top:5px;flex-wrap:wrap;}
+  .toggle-row button{flex:1;min-width:70px;padding:10px;border-radius:9px;border:1.5px solid var(--line);
+    background:#fff;font-weight:700;font-size:14px;color:var(--sub);}
+  .toggle-row button.active.s1{background:var(--side1);border-color:var(--side1);color:#fff;}
+  .toggle-row button.active.s2{background:var(--side2);border-color:var(--side2);color:#fff;}
+  .btn{width:100%;padding:13px;border:none;border-radius:10px;background:var(--ink);
+    color:#fff;font-weight:700;font-size:15px;margin-top:14px;}
+  .btn.secondary{background:#fff;color:var(--ink);border:1.5px solid var(--line);}
+  .section-title{font-size:13px;font-weight:800;color:var(--sub);text-transform:uppercase;
+    letter-spacing:.5px;margin:22px 0 10px;}
+  .admin-order-row,.admin-item-row,.admin-user-row{display:flex;justify-content:space-between;align-items:center;
+    padding:10px 0;border-bottom:1px solid var(--line);gap:8px;}
+  .admin-order-row:last-child,.admin-item-row:last-child,.admin-user-row:last-child{border-bottom:none;}
+  .admin-item-main{font-size:13.5px;}
+  .admin-item-main b{font-family:'JetBrains Mono',monospace;}
+  .del-x{background:none;border:none;color:var(--danger);font-size:18px;font-weight:800;padding:4px 8px;flex-shrink:0;}
+  .datalist-hint{font-size:11px;color:var(--sub);margin-top:-2px;margin-bottom:2px;}
+  .chip-select{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;}
+  .chip-select button{padding:7px 12px;border-radius:20px;border:1.5px solid var(--line);
+    background:#fff;font-size:12.5px;font-weight:700;color:var(--sub);font-family:'JetBrains Mono',monospace;}
+  .chip-select button.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .role-pill{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;}
+  .role-pill.admin{background:#EAE1F6;color:#6B3FA0;}
+  .role-pill.floor{background:var(--idle-soft);color:var(--idle);}
+
+  nav.bottom{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;max-width:520px;margin:0 auto;z-index:30;}
+  nav.bottom button{flex:1;padding:10px 4px 12px;background:none;border:none;color:var(--sub);
+    font-size:11px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  nav.bottom button .ico{font-size:19px;}
+  nav.bottom button.active{color:var(--ink);}
+
+  .floor-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px;}
+  .floor-tile{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:14px;text-align:left;}
+  .floor-tile .code{font-family:'JetBrains Mono',monospace;font-weight:800;font-size:15px;}
+  .floor-tile .cat{font-size:11.5px;color:var(--sub);margin-top:4px;line-height:1.4;}
+  .floor-tile.s1{border-left:5px solid var(--side1);}
+  .floor-tile.s2{border-left:5px solid var(--side2);}
+  .floor-tile .count{margin-top:8px;font-size:11px;font-weight:700;color:var(--sub);}
+
+  .back-btn{background:none;border:none;color:var(--sub);font-size:13px;font-weight:600;
+    padding:0 0 10px;display:flex;align-items:center;gap:4px;}
+
+  /* login screen */
+  #loginScreen{max-width:360px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:24px;}
+  #loginScreen .logo{font-size:34px;margin-bottom:6px;}
+  #loginScreen h1{font-size:19px;font-weight:800;margin:0 0 2px;}
+  #loginScreen p.sub{font-size:12.5px;color:var(--sub);margin:0 0 22px;text-align:center;}
+  .pin-dots{display:flex;gap:12px;margin-bottom:22px;}
+  .pin-dots span{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);}
+  .pin-dots span.filled{background:var(--ink);border-color:var(--ink);}
+  .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:280px;}
+  .keypad button{padding:16px 0;font-size:20px;font-weight:700;border-radius:12px;
+    border:1.5px solid var(--line);background:#fff;font-family:'JetBrains Mono',monospace;}
+  .keypad button.fn{font-family:'Inter',sans-serif;font-size:13px;color:var(--sub);font-weight:700;}
+  .login-error{color:var(--danger);font-size:12.5px;font-weight:600;margin-top:14px;min-height:16px;}
+  .login-hint{margin-top:26px;font-size:11px;color:var(--sub);text-align:center;line-height:1.6;}
+
+  ::placeholder{color:#B7BCC4;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" style="display:none">
+  <div class="logo">📦</div>
+  <h1>ระบบหยิบของ</h1>
+  <p class="sub">ใส่รหัส PIN ของคุณเพื่อเข้าใช้งาน</p>
+  <div class="pin-dots" id="pinDots"></div>
+  <div class="keypad" id="keypad"></div>
+  <div class="login-error" id="loginError"></div>
+  <div class="login-hint">รหัสเริ่มต้นของแอดมิน (ครั้งแรก): <b class="mono">0000</b><br>เข้าไปเปลี่ยน/เพิ่มผู้ใช้ได้ในแท็บแอดมิน</div>
+</div>
+
+<div id="app" style="display:none">
+  <header>
+    <div class="title">📦 ระบบหยิบของ<span class="tag">MOBILE</span></div>
+    <div class="who">
+      <div>
+        <div class="name" id="whoName"></div>
+      </div>
+      <button class="logout" id="logoutBtn">ออกจากระบบ</button>
+    </div>
+  </header>
+  <main id="main"></main>
+  <nav class="bottom" id="bottomNav"></nav>
+</div>
+
+<script>
+const FLOORS = {
+  F1S1:{side:1,floor:1,label:'ฝั่ง 1 ชั้น 1',cats:'ของใช้ในครัวทั่วไป, ทิชชู่'},
+  F1S2:{side:1,floor:2,label:'ฝั่ง 1 ชั้น 2',cats:'แมส, ของใช้สัตว์เลี้ยง, เทียน'},
+  F1S3:{side:1,floor:3,label:'ฝั่ง 1 ชั้น 3',cats:'เครื่องเขียนทุกอย่าง'},
+  F1S4:{side:1,floor:4,label:'ฝั่ง 1 ชั้น 4',cats:'กิ๊ฟชอป'},
+  F2S1:{side:2,floor:1,label:'ฝั่ง 2 ชั้น 1',cats:'ของใช้ทำสวน, มีด, ของฝั่ง1ชั้น1(ครัว/ทิชชู่)ขายปลีก'},
+  F2S2:{side:2,floor:2,label:'ฝั่ง 2 ชั้น 2',cats:'เสื้อผ้า, เครื่องเขียนของฝั่ง1ชั้น3ขายปลีก'},
+  F2S3:{side:2,floor:3,label:'ฝั่ง 2 ชั้น 3',cats:'ของจากฝั่ง1ชั้น4(กิ๊ฟชอป)ขายปลีก, ชุดไทย/เครื่องประดับหัวไทย'},
+};
+
+let orders = [];
+let items = [];
+let users = [];
+let currentUser = null; // in-memory only, lost on refresh
+let route = {page:'overview'};
+let enteredPin = '';
+
+const $ = s => document.querySelector(s);
+const esc = s => (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------------- FIREBASE (shared database, works from any phone) ---------------- */
+// วางค่าจาก Firebase Console > Project settings > Your apps ตรงนี้แทนของตัวอย่าง
+const firebaseConfig = {
+  apiKey: "วางค่าของคุณตรงนี้",
+  authDomain: "วางค่าของคุณตรงนี้",
+  projectId: "วางค่าของคุณตรงนี้",
+  storageBucket: "วางค่าของคุณตรงนี้",
+  messagingSenderId: "วางค่าของคุณตรงนี้",
+  appId: "วางค่าของคุณตรงนี้"
+};
+
+let db = null;
+let docRef = null;
+let dataReady = false;
+
+function configIsMissing(){
+  return Object.values(firebaseConfig).some(v => !v || v.includes('วางค่า'));
+}
+
+function initFirebase(){
+  firebase.initializeApp(firebaseConfig);
+  db = firebase.firestore();
+  docRef = db.collection('warehouse').doc('shop1');
+}
+
+// เขียนข้อมูลทั้งชุดกลับขึ้น Firestore (ทุกคนที่เปิดหน้านี้จะเห็นการเปลี่ยนแปลงเกือบทันที)
+async function pushState(){
+  await docRef.set({ orders, items, users }, { merge:true });
+}
+async function saveOrders(){ await pushState(); }
+async function saveItems(){ await pushState(); }
+async function saveUsers(){ await pushState(); }
+
+// ฟังการเปลี่ยนแปลงแบบเรียลไทม์ — เครื่องอื่นแก้ปุ๊บ หน้าจอนี้อัปเดตปั๊บ โดยไม่ต้องรีเฟรช
+function listenForChanges(onFirstLoad){
+  docRef.onSnapshot(async snap=>{
+    const data = snap.data();
+    if(!data){
+      // ยังไม่มีข้อมูลเลย (ครั้งแรกสุด) -> สร้างแอดมินเริ่มต้น
+      orders = []; items = [];
+      users = [{id:'admin-1', name:'แอดมิน', pin:'0000', role:'admin', floors:[]}];
+      await pushState();
+    } else {
+      orders = data.orders || [];
+      items = data.items || [];
+      users = data.users || [];
+      if(users.length === 0){
+        users = [{id:'admin-1', name:'แอดมิน', pin:'0000', role:'admin', floors:[]}];
+        await pushState();
+      }
+    }
+    if(!dataReady){ dataReady = true; onFirstLoad(); }
+    else if(currentUser){
+      // sync ข้อมูลล่าสุดของ currentUser เอง เผื่อแอดมินแก้สิทธิ์จากเครื่องอื่น
+      const fresh = users.find(u=>u.id===currentUser.id);
+      currentUser = fresh || currentUser;
+      render();
+    }
+  }, err=>{
+    $('#loginScreen').innerHTML = `<div style="text-align:center;padding:30px">
+      <div style="font-size:34px;margin-bottom:10px">⚠️</div>
+      <b>เชื่อมต่อฐานข้อมูลไม่ได้</b>
+      <p style="color:var(--sub);font-size:13px;margin-top:10px">${esc(err.message)}</p>
+      <p style="color:var(--sub);font-size:12px;margin-top:16px">เช็คว่าใส่ firebaseConfig ถูกต้อง และตั้ง Firestore Rules ให้อ่าน/เขียนได้แล้วหรือยัง</p>
+    </div>`;
+  });
+}
+
+function nextItemId(){
+  const n = items.length ? Math.max(...items.map(i=>parseInt(i.id.split('-')[1]||0))) + 1 : 1;
+  return 'IT-' + String(n).padStart(6,'0');
+}
+function itemsForFloor(code){
+  const f = FLOORS[code];
+  return items.filter(i => i.side===f.side && i.floor===f.floor);
+}
+function status(i){
+  if(!i.qtyPicked || i.qtyPicked===0) return 'idle';
+  if(i.qtyPicked >= i.qtyOrdered) return 'complete';
+  return 'partial';
+}
+function allowedFloorCodes(){
+  if(currentUser.role === 'admin') return Object.keys(FLOORS);
+  return currentUser.floors || [];
+}
+
+/* ---------------- LOGIN ---------------- */
+function renderKeypad(){
+  const keys = ['1','2','3','4','5','6','7','8','9','clear','0','back'];
+  $('#keypad').innerHTML = keys.map(k=>{
+    if(k==='clear') return `<button class="fn" data-k="clear">ล้าง</button>`;
+    if(k==='back') return `<button class="fn" data-k="back">⌫</button>`;
+    return `<button data-k="${k}">${k}</button>`;
+  }).join('');
+  document.querySelectorAll('#keypad button').forEach(b=>{
+    b.onclick = ()=> onKey(b.dataset.k);
+  });
+}
+function updateDots(){
+  const dots = Array.from({length:6}, (_,i)=>
+    `<span class="${i < enteredPin.length ? 'filled':''}"></span>`).join('');
+  $('#pinDots').innerHTML = dots;
+}
+function onKey(k){
+  $('#loginError').textContent = '';
+  if(k==='clear'){ enteredPin=''; }
+  else if(k==='back'){ enteredPin = enteredPin.slice(0,-1); }
+  else if(enteredPin.length < 6){ enteredPin += k; }
+  updateDots();
+  if(enteredPin.length >= 4){
+    const match = users.find(u=>u.pin === enteredPin);
+    if(match){
+      currentUser = match;
+      enteredPin = '';
+      showApp();
+    } else if(enteredPin.length === 6){
+      $('#loginError').textContent = 'ไม่พบรหัส PIN นี้ ลองใหม่อีกครั้ง';
+      enteredPin=''; updateDots();
+    }
+  }
+}
+function showLogin(){
+  currentUser = null;
+  $('#loginScreen').style.display = 'flex';
+  $('#app').style.display = 'none';
+  enteredPin=''; updateDots();
+  renderKeypad();
+}
+function showApp(){
+  $('#loginScreen').style.display = 'none';
+  $('#app').style.display = 'flex';
+  $('#whoName').innerHTML = esc(currentUser.name) +
+    ` <span class="role-pill ${currentUser.role}">${currentUser.role==='admin' ? 'แอดมิน' : 'พนักงานชั้น'}</span>`;
+  route = currentUser.role === 'admin' ? {page:'overview'} :
+    (allowedFloorCodes().length===1 ? {page:'floor', code:allowedFloorCodes()[0]} : {page:'floors'});
+  renderNav();
+  render();
+}
+$('#logoutBtn') && ($('#logoutBtn').onclick = showLogin);
+
+/* ---------------- NAV ---------------- */
+function renderNav(){
+  const isAdmin = currentUser.role === 'admin';
+  let html = `<button data-nav="overview"><span class="ico">📊</span>ภาพรวม</button>
+    <button data-nav="floors"><span class="ico">🗂️</span>หยิบของ</button>`;
+  if(isAdmin) html += `<button data-nav="admin"><span class="ico">🛠️</span>แอดมิน</button>`;
+  $('#bottomNav').innerHTML = html;
+  document.querySelectorAll('nav.bottom button').forEach(b=>{
+    b.onclick = ()=>{ route = {page:b.dataset.nav}; render(); };
+  });
+  setNav(route.page==='floor' ? 'floors' : route.page);
+}
+function setNav(active){
+  document.querySelectorAll('nav.bottom button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.nav===active);
+  });
+}
+
+/* ---------------- RENDER ROUTER ---------------- */
+function render(){
+  if(route.page==='overview') renderOverview();
+  else if(route.page==='floors') renderFloorPicker();
+  else if(route.page==='floor') renderFloor(route.code);
+  else if(route.page==='admin' && currentUser.role==='admin') renderAdmin();
+  else { route={page:'overview'}; renderOverview(); }
+  setNav(route.page==='floor' ? 'floors' : route.page);
+}
+
+/* ---------------- OVERVIEW ---------------- */
+function renderOverview(){
+  const orderIds = [...new Set(items.map(i=>i.orderId))];
+  let html = `<h2 class="page-title">ภาพรวมออเดอร์</h2>`;
+  if(orderIds.length===0){
+    html += `<div class="empty"><b>ยังไม่มีรายการ</b>รอแอดมินเพิ่มออเดอร์และรายการสินค้า</div>`;
+  }
+  orderIds.forEach(oid=>{
+    const its = items.filter(i=>i.orderId===oid);
+    const total = its.length;
+    const complete = its.filter(i=>status(i)==='complete').length;
+    const missing = total - complete;
+    const pct = total ? Math.round(complete/total*100) : 0;
+    const orderMeta = orders.find(o=>o.orderId===oid);
+    let pillClass='none', pillText='ยังไม่เริ่ม';
+    if(complete===total && total>0){ pillClass='ready'; pillText='✅ พร้อมตรวจ'; }
+    else if(complete>0){ pillClass='pending'; pillText='⏳ ยังไม่ครบ'; }
+    html += `<div class="ov-card">
+      <div class="ov-top">
+        <div class="ov-order mono">${esc(oid)}</div>
+        <div class="ov-pill ${pillClass}">${pillText}</div>
+      </div>
+      <div class="barwrap"><div class="bar" style="width:${pct}%"></div></div>
+      <div class="ov-meta">
+        <span>หยิบแล้ว ${complete}/${total} รายการ${missing>0 ? ' · ขาด '+missing : ''}</span>
+        <span>${orderMeta && orderMeta.date ? esc(orderMeta.date) : ''}</span>
+      </div>
+    </div>`;
+  });
+  $('#main').innerHTML = html;
+}
+
+/* ---------------- FLOOR PICKER ---------------- */
+function renderFloorPicker(){
+  const allowed = allowedFloorCodes();
+  let html = `<h2 class="page-title">เลือกฝั่ง / ชั้น</h2><div class="floor-grid">`;
+  allowed.forEach(code=>{
+    const f = FLOORS[code];
+    const its = itemsForFloor(code);
+    const done = its.filter(i=>status(i)==='complete').length;
+    html += `<button class="floor-tile s${f.side}" data-code="${code}">
+      <div class="code mono">${code}</div>
+      <div class="cat">${esc(f.cats)}</div>
+      <div class="count">${its.length ? done+'/'+its.length+' หยิบครบ' : 'ยังไม่มีรายการ'}</div>
+    </button>`;
+  });
+  html += `</div>`;
+  if(allowed.length===0) html += `<div class="empty"><b>ยังไม่ได้รับมอบหมายชั้น</b>ให้แอดมินกำหนดชั้นให้บัญชีนี้ก่อน</div>`;
+  $('#main').innerHTML = html;
+  document.querySelectorAll('.floor-tile').forEach(t=>{
+    t.onclick = ()=>{ route = {page:'floor', code:t.dataset.code}; render(); };
+  });
+}
+
+/* ---------------- FLOOR DETAIL ---------------- */
+function renderFloor(code){
+  if(!allowedFloorCodes().includes(code)){ route={page:'floors'}; renderFloorPicker(); return; }
+  const f = FLOORS[code];
+  const its = itemsForFloor(code);
+  const showBack = currentUser.role==='admin' || allowedFloorCodes().length>1;
+  let html = showBack ? `<button class="back-btn" id="backBtn">← กลับไปเลือกชั้น</button>` : '';
+  html += `<h2 class="page-title side${f.side}"><span class="badge-floor mono">${code}</span> ${esc(f.label)}</h2>`;
+  if(its.length===0){
+    html += `<div class="empty"><b>ยังไม่มีรายการของชั้นนี้</b>แอดมินยังไม่ได้เพิ่มรายการเข้าฝั่ง ${f.side} ชั้น ${f.floor}</div>`;
+  }
+  its.forEach(i=>{
+    const st = status(i);
+    const attrs = [];
+    if(i.color && i.color!=='-') attrs.push('สี '+i.color);
+    if(i.size && i.size!=='-') attrs.push('ไซส์ '+i.size);
+    if(i.pattern && i.pattern!=='-') attrs.push('ลาย '+i.pattern);
+    if(i.model && i.model!=='-') attrs.push('รุ่น '+i.model);
+    const stLabel = st==='complete' ? '✓ ครบ' : st==='partial' ? 'ขาด ' + (i.qtyOrdered - i.qtyPicked) : 'ยังไม่หยิบ';
+    html += `<div class="item ${st}" data-id="${i.id}">
+      <div class="item-top">
+        <span class="item-order mono">${esc(i.orderId)}</span>
+        <span class="item-status ${st}">${stLabel}</span>
+      </div>
+      <div class="item-cat">${esc(i.category)}</div>
+      <div class="item-attrs">${attrs.map(a=>`<span class="attr">${esc(a)}</span>`).join('') || '<span class="attr">ไม่มีสเปกเพิ่มเติม</span>'}</div>
+      <div class="item-qty-row">
+        <span class="ordered-note">สั่ง <b class="mono">${i.qtyOrdered}</b> ชิ้น</span>
+        <div class="stepper">
+          <button class="dec">−</button>
+          <input type="number" class="pickedInput" value="${i.qtyPicked||0}" min="0" inputmode="numeric">
+          <button class="inc">+</button>
+        </div>
+      </div>
+    </div>`;
+  });
+  $('#main').innerHTML = html;
+  if(showBack) $('#backBtn').onclick = ()=>{ route={page:'floors'}; render(); };
+
+  document.querySelectorAll('.item').forEach(card=>{
+    const id = card.dataset.id;
+    const input = card.querySelector('.pickedInput');
+    const item = items.find(x=>x.id===id);
+    const commit = async (val)=>{
+      let v = parseInt(val); if(isNaN(v) || v<0) v = 0;
+      item.qtyPicked = v;
+      await saveItems();
+      renderFloor(code);
+    };
+    card.querySelector('.inc').onclick = ()=> commit((item.qtyPicked||0)+1);
+    card.querySelector('.dec').onclick = ()=> commit(Math.max(0,(item.qtyPicked||0)-1));
+    input.onchange = ()=> commit(input.value);
+  });
+}
+
+/* ---------------- ADMIN ---------------- */
+let adminSide = 1;
+let adminFloor = 1;
+let newUserFloors = [];
+let newUserRole = 'floor';
+
+function renderAdmin(){
+  const orderOptions = orders.map(o=>`<option value="${esc(o.orderId)}">${esc(o.orderId)}</option>`).join('');
+  const catList = Object.values(FLOORS).map(f=>f.cats.split(',')).flat().map(c=>c.trim());
+  const uniqueCats = [...new Set(catList)];
+
+  $('#main').innerHTML = `
+    <h2 class="page-title">แอดมิน</h2>
+
+    <div class="section-title">1 · เพิ่ม / เลือกออเดอร์</div>
+    <div class="card">
+      <label>รหัสออเดอร์</label>
+      <input type="text" id="ordId" placeholder="เช่น OD-0003">
+      <div class="row2">
+        <div><label>วันที่</label><input type="date" id="ordDate"></div>
+        <div><label>ลูกค้า / หมายเหตุ</label><input type="text" id="ordNote" placeholder="ไม่บังคับ"></div>
+      </div>
+      <button class="btn secondary" id="addOrderBtn">+ บันทึกออเดอร์ใหม่</button>
+      ${orders.length ? '<div style="margin-top:14px">' + orders.map(o=>`
+        <div class="admin-order-row">
+          <span class="mono" style="font-weight:700">${esc(o.orderId)}</span>
+          <span style="font-size:12px;color:var(--sub);flex:1;margin-left:8px">${esc(o.note||'')}</span>
+          <button class="del-x" data-delorder="${esc(o.orderId)}">✕</button>
+        </div>`).join('') + '</div>' : ''}
+    </div>
+
+    <div class="section-title">2 · เพิ่มรายการสินค้า</div>
+    <div class="card">
+      <label>ออเดอร์ที่จะเพิ่มรายการนี้ให้</label>
+      <select id="itemOrder">${orderOptions || '<option value="">— ยังไม่มีออเดอร์ —</option>'}</select>
+
+      <label>ฝั่ง</label>
+      <div class="toggle-row">
+        <button type="button" class="side-btn ${adminSide===1?'active s1':''}" data-side="1">ฝั่ง 1 (4 ชั้น)</button>
+        <button type="button" class="side-btn ${adminSide===2?'active s2':''}" data-side="2">ฝั่ง 2 (3 ชั้น)</button>
+      </div>
+
+      <label>ชั้น</label>
+      <div class="toggle-row" id="floorRow"></div>
+
+      <div class="datalist-hint">หมวดของชั้นนี้: <span id="floorCatsHint"></span></div>
+      <label>หมวดหมู่</label>
+      <input type="text" id="itemCat" list="catList" placeholder="เช่น เครื่องเขียน">
+      <datalist id="catList">${uniqueCats.map(c=>`<option value="${esc(c)}">`).join('')}</datalist>
+
+      <div class="row2">
+        <div><label>สี</label><input type="text" id="itemColor" placeholder="-"></div>
+        <div><label>ไซส์</label><input type="text" id="itemSize" placeholder="-"></div>
+      </div>
+      <div class="row2">
+        <div><label>ลาย</label><input type="text" id="itemPattern" placeholder="-"></div>
+        <div><label>รุ่น</label><input type="text" id="itemModel" placeholder="-"></div>
+      </div>
+      <label>จำนวนสั่ง</label>
+      <input type="number" id="itemQty" min="1" value="1">
+
+      <button class="btn" id="addItemBtn">+ เพิ่มรายการ</button>
+    </div>
+
+    <div class="section-title">3 · ผู้ใช้งาน / สิทธิ์ (${users.length})</div>
+    <div class="card">
+      <label>ชื่อพนักงาน</label>
+      <input type="text" id="userName" placeholder="เช่น พี่แอน">
+      <label>PIN (4-6 หลัก)</label>
+      <input type="text" id="userPin" inputmode="numeric" placeholder="เช่น 1234" maxlength="6">
+      <label>สิทธิ์</label>
+      <div class="toggle-row">
+        <button type="button" class="role-btn ${newUserRole==='admin'?'active s1':''}" data-role="admin">แอดมิน (ทุกสิทธิ์)</button>
+        <button type="button" class="role-btn ${newUserRole==='floor'?'active s1':''}" data-role="floor">พนักงานชั้น</button>
+      </div>
+      <div id="floorAssignWrap" style="${newUserRole==='floor' ? '' : 'display:none'}">
+        <label>มอบหมายชั้น (แตะเลือกได้หลายชั้น)</label>
+        <div class="chip-select" id="floorChips">
+          ${Object.keys(FLOORS).map(code=>`<button type="button" class="chip ${newUserFloors.includes(code)?'on':''}" data-code="${code}">${code}</button>`).join('')}
+        </div>
+      </div>
+      <button class="btn secondary" id="addUserBtn">+ เพิ่มผู้ใช้งาน</button>
+      <div style="margin-top:14px">
+        ${users.map(u=>`
+          <div class="admin-user-row">
+            <div>
+              <b class="mono">${esc(u.pin)}</b> — ${esc(u.name)}
+              <span class="role-pill ${u.role}">${u.role==='admin'?'แอดมิน':'พนักงานชั้น'}</span>
+              ${u.role==='floor' ? `<div style="font-size:11px;color:var(--sub);margin-top:2px">${(u.floors||[]).join(', ') || 'ยังไม่มอบหมายชั้น'}</div>` : ''}
+            </div>
+            <button class="del-x" data-deluser="${u.id}">✕</button>
+          </div>`).join('')}
+      </div>
+    </div>
+
+    <div class="section-title">4 · รายการทั้งหมด (${items.length})</div>
+    <div class="card">
+      ${items.length===0 ? '<div class="empty">ยังไม่มีรายการ</div>' : items.slice().reverse().map(i=>`
+        <div class="admin-item-row">
+          <div class="admin-item-main">
+            <b class="mono">${esc(i.id)}</b> · ${esc(i.orderId)}<br>
+            <span style="color:var(--sub)">F${i.side}S${i.floor} · ${esc(i.category)} · หยิบ ${i.qtyPicked||0}/${i.qtyOrdered}</span>
+          </div>
+          <button class="del-x" data-delitem="${i.id}">✕</button>
+        </div>`).join('')}
+    </div>
+  `;
+
+  $('#ordDate').value = new Date().toISOString().slice(0,10);
+  renderFloorButtons();
+
+  $('#addOrderBtn').onclick = async ()=>{
+    const id = $('#ordId').value.trim();
+    if(!id){ alert('กรอกรหัสออเดอร์ก่อน'); return; }
+    if(orders.some(o=>o.orderId===id)){ alert('มีรหัสออเดอร์นี้อยู่แล้ว'); return; }
+    orders.push({orderId:id, date:$('#ordDate').value, note:$('#ordNote').value.trim()});
+    await saveOrders();
+    renderAdmin();
+  };
+
+  document.querySelectorAll('[data-delorder]').forEach(b=>{
+    b.onclick = async ()=>{
+      const id = b.dataset.delorder;
+      if(!confirm('ลบออเดอร์ '+id+' และรายการสินค้าทั้งหมดในออเดอร์นี้?')) return;
+      orders = orders.filter(o=>o.orderId!==id);
+      items = items.filter(i=>i.orderId!==id);
+      await saveOrders(); await saveItems();
+      renderAdmin();
+    };
+  });
+
+  document.querySelectorAll('.side-btn').forEach(b=>{
+    b.onclick = ()=>{ adminSide = parseInt(b.dataset.side); adminFloor = 1; renderAdmin(); };
+  });
+
+  $('#addItemBtn').onclick = async ()=>{
+    const orderId = $('#itemOrder').value;
+    if(!orderId){ alert('ต้องมีออเดอร์ก่อนถึงจะเพิ่มรายการได้'); return; }
+    const category = $('#itemCat').value.trim();
+    if(!category){ alert('กรอกหมวดหมู่'); return; }
+    const qty = parseInt($('#itemQty').value) || 1;
+    const newItem = {
+      id: nextItemId(), orderId, side: adminSide, floor: adminFloor,
+      category, color: $('#itemColor').value.trim()||'-', size: $('#itemSize').value.trim()||'-',
+      pattern: $('#itemPattern').value.trim()||'-', model: $('#itemModel').value.trim()||'-',
+      qtyOrdered: qty, qtyPicked: 0
+    };
+    items.push(newItem);
+    await saveItems();
+    renderAdmin();
+  };
+
+  document.querySelectorAll('[data-delitem]').forEach(b=>{
+    b.onclick = async ()=>{
+      items = items.filter(i=>i.id!==b.dataset.delitem);
+      await saveItems();
+      renderAdmin();
+    };
+  });
+
+  document.querySelectorAll('.role-btn').forEach(b=>{
+    b.onclick = ()=>{ newUserRole = b.dataset.role; renderAdmin(); };
+  });
+  document.querySelectorAll('#floorChips .chip').forEach(b=>{
+    b.onclick = ()=>{
+      const code = b.dataset.code;
+      if(newUserFloors.includes(code)) newUserFloors = newUserFloors.filter(c=>c!==code);
+      else newUserFloors.push(code);
+      renderAdmin();
+    };
+  });
+
+  $('#addUserBtn').onclick = async ()=>{
+    const name = $('#userName').value.trim();
+    const pin = $('#userPin').value.trim();
+    if(!name){ alert('กรอกชื่อพนักงาน'); return; }
+    if(!/^\d{4,6}$/.test(pin)){ alert('PIN ต้องเป็นตัวเลข 4-6 หลัก'); return; }
+    if(users.some(u=>u.pin===pin)){ alert('มีคนใช้ PIN นี้อยู่แล้ว ลองรหัสอื่น'); return; }
+    if(newUserRole==='floor' && newUserFloors.length===0){ alert('เลือกอย่างน้อย 1 ชั้นให้พนักงานคนนี้'); return; }
+    users.push({id:'u-'+Date.now(), name, pin, role:newUserRole, floors: newUserRole==='floor' ? [...newUserFloors] : []});
+    newUserFloors = []; newUserRole = 'floor';
+    await saveUsers();
+    renderAdmin();
+  };
+
+  document.querySelectorAll('[data-deluser]').forEach(b=>{
+    b.onclick = async ()=>{
+      if(users.length<=1){ alert('ต้องมีผู้ใช้อย่างน้อย 1 คน'); return; }
+      const u = users.find(x=>x.id===b.dataset.deluser);
+      if(!confirm('ลบผู้ใช้ '+u.name+'?')) return;
+      users = users.filter(x=>x.id!==b.dataset.deluser);
+      await saveUsers();
+      renderAdmin();
+    };
+  });
+}
+
+function renderFloorButtons(){
+  const maxFloor = adminSide===1 ? 4 : 3;
+  const row = $('#floorRow');
+  let html = '';
+  for(let f=1; f<=maxFloor; f++){
+    html += `<button type="button" class="floor-btn ${f===adminFloor?'active s'+adminSide:''}" data-floor="${f}">ชั้น ${f}</button>`;
+  }
+  row.innerHTML = html;
+  const code = 'F'+adminSide+'S'+adminFloor;
+  $('#floorCatsHint').textContent = FLOORS[code] ? FLOORS[code].cats : '';
+  document.querySelectorAll('.floor-btn').forEach(b=>{
+    b.onclick = ()=>{ adminFloor = parseInt(b.dataset.floor); renderAdmin(); };
+  });
+}
+
+(async function init(){
+  await loadData();
+  showLogin();
+})();
+</script>
+</body>
+</html>
