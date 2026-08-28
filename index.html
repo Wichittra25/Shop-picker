@@ -195,7 +195,14 @@ const esc = s => (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'
 
 /* ---------------- FIREBASE (shared database, works from any phone) ---------------- */
 // วางค่าจาก Firebase Console > Project settings > Your apps ตรงนี้แทนของตัวอย่าง
-const firebaseConfig = {
+const firebaseConfig = {rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /warehouse/{doc} {
+      allow read, write: if true;
+    }
+  }
+}
   apiKey: "วางค่าของคุณตรงนี้",
   authDomain: "วางค่าของคุณตรงนี้",
   projectId: "วางค่าของคุณตรงนี้",
